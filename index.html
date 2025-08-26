@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบทดสอบหน้าที่พลเมือง ป.5</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            background-color: #e2e8f0;
+        }
+        .btn-option {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .btn-option:hover:not([disabled]) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-correct {
+            background-color: #10B981; /* green-500 */
+            color: white;
+        }
+        .btn-incorrect {
+            background-color: #EF4444; /* red-500 */
+            color: white;
+        }
+        .btn-next {
+            background-color: #3B82F6; /* blue-500 */
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-next:hover {
+            background-color: #2563EB; /* blue-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div id="quiz-container" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
+        <h1 class="text-xl md:text-2xl font-bold text-center text-gray-800 mb-4">แบบทดสอบหน้าที่พลเมืองสำหรับ ด.ช.กันต์ ทะเสนฮด</h1>
+        
+        <!-- Question and options section -->
+        <div id="quiz-content" class="space-y-6">
+            <div id="question-box" class="bg-gray-100 p-6 rounded-lg shadow-inner">
+                <p id="question-text" class="text-lg md:text-xl font-medium text-gray-700">กำลังโหลดคำถาม...</p>
+                <div id="hint-box" class="mt-4 p-3 rounded-md bg-yellow-100 text-yellow-800 border-l-4 border-yellow-500 hidden">
+                    <p id="hint-text" class="text-sm italic"></p>
+                </div>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Answer options will be rendered here by JavaScript -->
+            </div>
+            
+            <div id="rationale-container" class="mt-4 p-4 bg-blue-100 text-blue-800 rounded-md border-l-4 border-blue-500 hidden">
+                <p id="rationale-text" class="text-sm"></p>
+            </div>
+        </div>
+
+        <!-- Control buttons section -->
+        <div id="control-buttons" class="mt-8 flex justify-between items-center">
+            <button id="hint-btn" class="px-6 py-2 bg-gray-500 text-white rounded-lg shadow-md hover:bg-gray-600 transition-colors duration-200">
+                คำใบ้
+            </button>
+            <button id="next-btn" class="px-8 py-3 btn-next rounded-lg shadow-md transition-all duration-200 hidden">
+                คำถามต่อไป
+            </button>
+        </div>
+
+        <!-- Results section -->
+        <div id="results-section" class="text-center space-y-4 hidden">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800">ผลลัพธ์</h2>
+            <p id="score-text" class="text-xl md:text-2xl font-semibold text-gray-700"></p>
+            <button id="restart-btn" class="px-8 py-3 btn-next rounded-lg shadow-md hover:bg-blue-600 transition-colors duration-200">
+                ลองอีกครั้ง
+            </button>
+        </div>
+
+        <!-- Correct/Incorrect Answers with Rationales Section -->
+        <div id="answer-review-section" class="mt-8 space-y-4 hidden">
+            <h2 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-4">สรุปผลและเฉลย</h2>
+            <div id="answer-review-list" class="space-y-6">
+                <!-- Answer review items will be populated here -->
+            </div>
+            <div class="flex justify-center mt-6">
+                <button id="download-btn" class="px-8 py-3 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition-colors duration-200">
+                    ดาวน์โหลดผลการทดสอบ
+                </button>
+            </div>
+        </div>
+        
+        <!-- Creator link -->
+        <div class="mt-8 text-center text-sm text-gray-600">
+            ผู้จัดทำ: <a href="https://script.google.com/macros/s/AKfycbxzJDUlmA9JCz-gAkWYmZ6-d2QAi7Jw6q85ysQc3WU/dev" target="_blank" class="text-red-600 hover:underline">
+                https://script.google.com/macros/s/AKfycbxzJDUlmA9JCz-gAkWYmZ6-d2QAi7Jw6q85ysQc3WU/dev
+            </a>
+        </div>
+    </div>
+
+    <!-- jsPDF library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        // Quiz data with 50 questions
+        const quizData = {
+            "questions": [
+                {
+                    "question": "ข้อใดคือเหตุผลสำคัญที่สุดที่เราทุกคนต้องปฏิบัติตามกฎหมายและกฎระเบียบของสังคม",
+                    "hint": "ลองนึกดูว่าจะเกิดอะไรขึ้นถ้าทุกคนในเกมไม่เล่นตามกติกา",
+                    "answerOptions": [
+                        {"text": "เพื่อให้สังคมเกิดความสงบเรียบร้อยและปลอดภัย", "rationale": "การปฏิบัติตามกฎระเบียบร่วมกันทำให้ทุกคนสามารถอยู่ร่วมกันได้อย่างเป็นสุขและลดความขัดแย้ง", "isCorrect": true},
+                        {"text": "เพื่อหลีกเลี่ยงการถูกลงโทษจากผู้ใหญ่", "rationale": "แม้ว่าการทำผิดกฎจะนำไปสู่การลงโทษ แต่นั่นเป็นผลที่ตามมา ไม่ใช่เป้าหมายหลักของการมีกฎระเบียบ", "isCorrect": false},
+                        {"text": "เพื่อให้ผู้ปกครองและคุณครูพอใจ", "rationale": "การเป็นเด็กดีเป็นสิ่งที่น่าชื่นชม แต่เป้าหมายของการมีกฎหมายนั้นใหญ่กว่าความสัมพันธ์ส่วนบุคคล", "isCorrect": false},
+                        {"text": "เพราะเป็นสิ่งที่คนส่วนใหญ่ทำตามกันมา", "rationale": "การทำตามคนอื่นโดยไม่มีเหตุผลอาจไม่ใช่สิ่งที่ถูกต้องเสมอไป เราควรเข้าใจถึงจุดประสงค์ของกฎนั้นๆ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำในข้อใดถือเป็น 'หน้าที่' ของพลเมืองดี ไม่ใช่ 'สิทธิ'",
+                    "hint": "หน้าที่คือสิ่งที่เรา 'มอบให้' กับสังคม ส่วนสิทธิคือสิ่งที่เรา 'ได้รับ' จากสังคม",
+                    "answerOptions": [
+                        {"text": "การดูแลรักษาสิ่งแวดล้อมในชุมชน", "rationale": "การกระทำนี้เป็นความรับผิดชอบที่ทุกคนควรมีส่วนร่วมเพื่อประโยชน์ของส่วนรวม", "isCorrect": true},
+                        {"text": "การได้รับการศึกษาขั้นพื้นฐาน", "rationale": "สิ่งนี้เป็นประโยชน์พื้นฐานที่พลเมืองทุกคนพึงได้รับตามที่กฎหมายกำหนดไว้", "isCorrect": false},
+                        {"text": "การแสดงความคิดเห็นอย่างสุจริต", "rationale": "การแสดงออกทางความคิดเป็นเสรีภาพพื้นฐานที่พลเมืองทุกคนพึงมี", "isCorrect": false},
+                        {"text": "การได้รับบริการสาธารณสุขเมื่อเจ็บป่วย", "rationale": "การเข้าถึงการรักษาพยาบาลเป็นประโยชน์พื้นฐานที่รัฐจัดหาให้กับพลเมือง", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดคือบทบาทหน้าที่ที่สำคัญของการเป็นสมาชิกที่ดีในครอบครัว",
+                    "hint": "ลองคิดว่าครอบครัวเปรียบเสมือนทีมที่ทุกคนต้องช่วยกัน",
+                    "answerOptions": [
+                        {"text": "ช่วยแบ่งเบาภาระงานบ้านตามกำลังของตนเอง", "rationale": "การช่วยเหลือกันในเรื่องเล็กๆ น้อยๆ แสดงถึงความรับผิดชอบและความรักที่มีต่อครอบครัว", "isCorrect": true},
+                        {"text": "ใช้เวลาทั้งหมดไปกับการเล่นสนุกสนาน", "rationale": "การพักผ่อนเป็นสิ่งจำเป็น แต่การเป็นสมาชิกที่ดีต้องมีความรับผิดชอบในบทบาทของตนเองด้วย", "isCorrect": false},
+                        {"text": "ตั้งใจเรียนเพียงอย่างเดียวโดยไม่สนใจงานบ้าน", "rationale": "การเรียนเป็นสิ่งสำคัญ แต่การเป็นสมาชิกที่ดีของครอบครัวหมายถึงการมีส่วนร่วมในหลายๆ ด้าน", "isCorrect": false},
+                        {"text": "ขอให้พ่อแม่ซื้อของเล่นให้บ่อยๆ", "rationale": "การกระทำนี้เป็นการเรียกร้องจากผู้อื่น ซึ่งตรงข้ามกับบทบาทของการเป็นผู้ให้และผู้ช่วยเหลือในครอบครัว", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การปฏิบัติตนในข้อใดที่แสดงถึงความรับผิดชอบต่อชุมชนได้ดีที่สุด",
+                    "hint": "ความรับผิดชอบต่อชุมชนคือการกระทำที่เป็นประโยชน์ต่อคนส่วนใหญ่ ไม่ใช่แค่ตัวเอง",
+                    "answerOptions": [
+                        {"text": "เข้าร่วมกิจกรรมปลูกต้นไม้ในสวนสาธารณะ", "rationale": "การกระทำนี้เป็นการสละเวลาและแรงกายเพื่อสร้างประโยชน์ให้กับพื้นที่ส่วนรวมที่ทุกคนใช้ร่วมกัน", "isCorrect": true},
+                        {"text": "วาดภาพบนกำแพงในที่สาธารณะตามจินตนาการ", "rationale": "การกระทำนี้เป็นการทำลายทรัพย์สินส่วนรวมและอาจทำให้ทัศนียภาพไม่สวยงาม", "isCorrect": false},
+                        {"text": "รักษาความสะอาดเฉพาะในบริเวณบ้านของตนเอง", "rationale": "การดูแลบ้านเป็นสิ่งที่ดี แต่ความรับผิดชอบต่อชุมชนหมายถึงการดูแลพื้นที่ส่วนรวมด้วย", "isCorrect": false},
+                        {"text": "ทิ้งขยะลงในแม่น้ำลำคลองใกล้บ้าน", "rationale": "การกระทำนี้สร้างผลเสียต่อสิ่งแวดล้อมและส่งผลกระทบต่อผู้คนจำนวนมากในชุมชน", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "เราจะแสดงออกถึงความภาคภูมิใจในวัฒนธรรมไทยได้อย่างไร",
+                    "hint": "ความภาคภูมิใจมาจากการเห็นคุณค่าและร่วมกันอนุรักษ์สิ่งที่เป็นเอกลักษณ์ของชาติเรา",
+                    "answerOptions": [
+                        {"text": "เข้าร่วมและเรียนรู้เกี่ยวกับประเพณีสำคัญ เช่น ประเพณีลอยกระทง", "rationale": "การมีส่วนร่วมทำให้เราเข้าใจถึงคุณค่าและความงดงามของประเพณีซึ่งเป็นมรดกของชาติ", "isCorrect": true},
+                        {"text": "เลือกฟังแต่เพลงและดูภาพยนตร์จากต่างประเทศเท่านั้น", "rationale": "การชื่นชมวัฒนธรรมอื่นเป็นเรื่องที่ดี แต่การละเลยวัฒนธรรมของตนเองไม่ได้แสดงถึงความภาคภูมิใจ", "isCorrect": false},
+                        {"text": "คิดว่าประเพณีไทยเป็นเรื่องล้าสมัยและไม่น่าสนใจ", "rationale": "ทัศนคตินี้แสดงถึงการไม่เห็นคุณค่าในรากเหง้าและเอกลักษณ์ของความเป็นไทย", "isCorrect": false},
+                        {"text": "พูดภาษาอังกฤษกับเพื่อนคนไทยตลอดเวลา", "rationale": "การใช้ภาษาต่างประเทศเป็นทักษะที่ดี แต่การละเลยภาษาไทยซึ่งเป็นภาษาประจำชาติไม่ได้แสดงถึงความภาคภูมิใจ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "เมื่อเกิดความขัดแย้งกับเพื่อนนักเรียน ควรใช้วิธีการใดในการแก้ปัญหา",
+                    "hint": "เป้าหมายคือการแก้ปัญหา ไม่ใช่การเอาชนะ",
+                    "answerOptions": [
+                        {"text": "พูดคุยกันด้วยเหตุผลเพื่อหาทางออกร่วมกันอย่างสันติ", "rationale": "การสื่อสารอย่างสร้างสรรค์และพยายามทำความเข้าใจซึ่งกันและกันเป็นหนทางที่ดีที่สุดในการรักษามิตรภาพ", "isCorrect": true},
+                        {"text": "ใช้เสียงดังเพื่อให้เพื่อนยอมทำตามความคิดของเรา", "rationale": "การใช้อารมณ์และความรุนแรงไม่ช่วยแก้ปัญหา แต่อาจทำให้สถานการณ์แย่ลง", "isCorrect": false},
+                        {"text": "ไม่พูดคุยกับเพื่อนคนนั้นอีกต่อไป", "rationale": "การหลีกเลี่ยงปัญหาไม่ใช่การแก้ปัญหา และอาจทำให้สูญเสียเพื่อนที่ดีไป", "isCorrect": false},
+                        {"text": "ชวนเพื่อนคนอื่น ๆ มาเข้าข้างตัวเอง", "rationale": "การกระทำนี้อาจทำให้ความขัดแย้งบานปลายและสร้างความแตกแยกในกลุ่มเพื่อน", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำใดที่แสดงถึง 'การเคารพความแตกต่าง' ของผู้อื่น",
+                    "hint": "สังคมเปรียบเสมือนสวนดอกไม้ที่มีดอกไม้นานาชนิด",
+                    "answerOptions": [
+                        {"text": "เป็นเพื่อนและพูดคุยกับทุกคน แม้ว่าเขาจะมีความเชื่อที่ต่างจากเรา", "rationale": "การยอมรับและให้เกียรติในตัวตนของผู้อื่นเป็นหัวใจสำคัญของการอยู่ร่วมกันอย่างสันติ", "isCorrect": true},
+                        {"text": "พยายามชักชวนให้เพื่อนเปลี่ยนมานับถือศาสนาเดียวกับเรา", "rationale": "ความเชื่อเป็นสิทธิส่วนบุคคล การกระทำนี้อาจเป็นการไม่เคารพในการตัดสินใจของผู้อื่น", "isCorrect": false},
+                        {"text": "เลือกเล่นกับเพื่อนที่มาจากภาคเดียวกันเท่านั้น", "rationale": "การแบ่งแยกและไม่เปิดใจเรียนรู้ความแตกต่างทำให้เราพลาดโอกาสในการสร้างมิตรภาพที่ดี", "isCorrect": false},
+                        {"text": "ล้อเลียนสำเนียงการพูดของเพื่อนที่ย้ายมาจากต่างจังหวัด", "rationale": "การกระทำนี้เป็นการไม่ให้เกียรติและสร้างความรู้สึกไม่ดีให้กับผู้อื่น", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "เหตุใดการใช้ภาษาไทยอย่างถูกต้องจึงมีความสำคัญต่อคนไทย",
+                    "hint": "ลองนึกถึงสิ่งที่ทำให้ประเทศไทยแตกต่างจากประเทศอื่นๆ",
+                    "answerOptions": [
+                        {"text": "เพราะภาษาเป็นส่วนหนึ่งของเอกลักษณ์และความเป็นชาติไทย", "rationale": "ภาษาไทยเป็นมรดกทางวัฒนธรรมที่สำคัญซึ่งสะท้อนถึงประวัติศาสตร์และรากเหง้าของเรา", "isCorrect": true},
+                        {"text": "เพื่อให้ได้คะแนนดีในวิชาภาษาไทย", "rationale": "คะแนนที่ดีเป็นผลพลอยได้ แต่เหตุผลที่สำคัญกว่านั้นเกี่ยวข้องกับความเป็นชาติ", "isCorrect": false},
+                        {"text": "เพราะเป็นภาษาที่เรียนรู้ง่ายที่สุดในโลก", "rationale": "ความง่ายหรือยากของภาษาเป็นมุมมองส่วนบุคคลและไม่ใช่เหตุผลหลักของความสำคัญ", "isCorrect": false},
+                        {"text": "เพื่อให้ชาวต่างชาติเข้าใจวัฒนธรรมของเราได้ง่ายขึ้น", "rationale": "แม้จะเป็นประโยชน์ แต่เป้าหมายหลักของการรักษาภาษาคือเพื่อคนในชาติเอง", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดคือหน้าที่หลักของนักเรียนในโรงเรียน",
+                    "hint": "จุดประสงค์หลักของการไปโรงเรียนคืออะไร",
+                    "answerOptions": [
+                        {"text": "ตั้งใจศึกษาเล่าเรียนและปฏิบัติตามกฎระเบียบ", "rationale": "การแสวงหาความรู้และอยู่ในระเบียบวินัยเป็นความรับผิดชอบโดยตรงเพื่อการพัฒนาตนเองและส่วนรวม", "isCorrect": true},
+                        {"text": "เล่นกับเพื่อนในช่วงเวลาเรียน", "rationale": "การมีปฏิสัมพันธ์กับเพื่อนเป็นสิ่งที่ดี แต่ควรทำในเวลาที่เหมาะสม ไม่ใช่ในเวลาเรียน", "isCorrect": false},
+                        {"text": "ช่วยคุณครูทำงานพิเศษทุกอย่าง", "rationale": "การช่วยเหลือคุณครูเป็นสิ่งที่ดี แต่หน้าที่หลักที่สำคัญที่สุดคือการเรียนของตนเอง", "isCorrect": false},
+                        {"text": "เป็นผู้นำในการจัดกิจกรรมสันทนาการ", "rationale": "การเป็นผู้นำเป็นทักษะที่ดี แต่ไม่ใช่หน้าที่หลักของนักเรียนทุกคน", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การมี 'น้ำใจ' ตามความหมายของคนไทย คือการปฏิบัติตนอย่างไร",
+                    "hint": "คุณลักษณะนี้เกี่ยวข้องกับความเมตตาและความจริงใจ",
+                    "answerOptions": [
+                        {"text": "มีความเอื้อเฟื้อเผื่อแผ่และช่วยเหลือผู้อื่นโดยไม่หวังผลตอบแทน", "rationale": "สิ่งนี้สะท้อนถึงความปรารถนาดีอย่างจริงใจต่อผู้อื่น ซึ่งเป็นคุณธรรมที่สำคัญในสังคมไทย", "isCorrect": true},
+                        {"text": "ช่วยเหลือเฉพาะคนที่เราคาดว่าจะได้รับความช่วยเหลือกลับคืน", "rationale": "การกระทำเช่นนี้เป็นการแลกเปลี่ยนผลประโยชน์ ไม่ใช่ความมีน้ำใจอย่างแท้จริง", "isCorrect": false},
+                        {"text": "มอบของที่เราไม่ต้องการแล้วให้กับผู้อื่น", "rationale": "แม้จะเป็นการให้ แต่ 'น้ำใจ' ที่แท้จริงมักเกี่ยวข้องกับการสละสิ่งที่ตนมีเพื่อผู้อื่น", "isCorrect": false},
+                        {"text": "ประกาศให้ทุกคนรู้เมื่อเราได้ช่วยเหลือใครบางคน", "rationale": "การมีน้ำใจที่แท้จริงไม่จำเป็นต้องโอ้อวด แต่เป็นการกระทำที่มาจากความรู้สึกอยากช่วยเหลือจริงๆ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำใดที่แสดงถึงการใช้สิทธิและเสรีภาพของตนเองอย่างมีความรับผิดชอบ?",
+                    "hint": "การใช้สิทธิที่ถูกต้องคือต้องไม่ไปละเมิดสิทธิของคนอื่น",
+                    "answerOptions": [
+                        {"text": "พูดความจริงในเรื่องที่คนอื่นได้รับความเสียหาย", "rationale": "การพูดความจริงเป็นสิทธิ แต่ต้องระวังไม่ให้ละเมิดสิทธิของผู้อื่น", "isCorrect": true},
+                        {"text": "การดูหนังในโรงภาพยนตร์และส่งเสียงดังรบกวน", "rationale": "การกระทำนี้ละเมิดสิทธิของผู้อื่นที่ต้องการความสงบ", "isCorrect": false},
+                        {"text": "การโพสต์ข้อความที่รุนแรงในสื่อออนไลน์", "rationale": "การกระทำนี้เป็นการละเมิดสิทธิเสรีภาพของผู้อื่นและอาจเป็นความผิดทางกฎหมาย", "isCorrect": false},
+                        {"text": "การแสดงความคิดเห็นโดยไม่มีการรับฟังความคิดเห็นของผู้อื่น", "rationale": "การแสดงความคิดเห็นที่ขาดการรับฟังผู้อื่นอาจนำไปสู่ความขัดแย้ง", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดเป็นผลดีที่เกิดขึ้นจากการที่พลเมืองทุกคนมีส่วนร่วมในการพัฒนาชุมชน?",
+                    "hint": "การมีส่วนร่วมทำให้เราได้ประโยชน์ร่วมกัน",
+                    "answerOptions": [
+                        {"text": "ชุมชนมีความน่าอยู่และมีความสัมพันธ์ที่ดีขึ้น", "rationale": "การร่วมมือกันทำให้เกิดความสามัคคีและพัฒนาชุมชนไปในทางที่ดี", "isCorrect": true},
+                        {"text": "มีแต่ผู้มีอำนาจในชุมชนได้รับประโยชน์", "rationale": "การพัฒนาชุมชนที่ดีต้องเกิดจากความร่วมมือของทุกคนและเป็นประโยชน์กับทุกคน", "isCorrect": false},
+                        {"text": "สมาชิกในชุมชนมีภาระงานมากขึ้น", "rationale": "แม้จะมีการทำงานร่วมกัน แต่นี่เป็นภาระที่ดีที่สร้างประโยชน์แก่ส่วนรวม", "isCorrect": false},
+                        {"text": "เกิดการแบ่งฝักแบ่งฝ่ายในชุมชน", "rationale": "การมีส่วนร่วมควรนำไปสู่ความสามัคคี ไม่ใช่การแตกแยก", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำในข้อใดที่แสดงถึงการประหยัดและใช้ทรัพยากรอย่างคุ้มค่า?",
+                    "hint": "การใช้ทรัพยากรอย่างคุ้มค่าคือไม่สิ้นเปลืองและไม่ทำให้เสียของ",
+                    "answerOptions": [
+                        {"text": "ปิดไฟทุกครั้งเมื่อออกจากห้อง", "rationale": "การปิดไฟเมื่อไม่ได้ใช้เป็นการประหยัดพลังงานไฟฟ้า", "isCorrect": true},
+                        {"text": "เปิดน้ำทิ้งไว้ขณะแปรงฟัน", "rationale": "การเปิดน้ำทิ้งไว้เป็นการสิ้นเปลืองทรัพยากรน้ำ", "isCorrect": false},
+                        {"text": "ซื้อเสื้อผ้าใหม่ตลอดเวลาตามแฟชั่น", "rationale": "การซื้อของฟุ่มเฟือยเป็นการใช้จ่ายที่ไม่คุ้มค่า", "isCorrect": false},
+                        {"text": "ทิ้งกระดาษที่ยังใช้ได้ไปโดยไม่จำเป็น", "rationale": "การทิ้งกระดาษที่ยังใช้ได้เป็นการสิ้นเปลืองทรัพยากร", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดเป็นหน้าที่สำคัญของเยาวชนในการปกป้องและรักษาชื่อเสียงของประเทศชาติ?",
+                    "hint": "การกระทำของเราสะท้อนถึงความเป็นชาติของเรา",
+                    "answerOptions": [
+                        {"text": "ปฏิบัติตนตามหลักคำสอนของศาสนาที่ตนเองนับถือ", "rationale": "การปฏิบัติตนเป็นคนดีตามหลักคำสอนของศาสนาจะช่วยสร้างภาพลักษณ์ที่ดีของประเทศ", "isCorrect": true},
+                        {"text": "เดินทางไปท่องเที่ยวในต่างประเทศเท่านั้น", "rationale": "การท่องเที่ยวเป็นสิทธิส่วนบุคคล แต่ไม่ได้สะท้อนถึงการปกป้องชื่อเสียงของประเทศ", "isCorrect": false},
+                        {"text": "ซื้อของจากต่างประเทศเพื่อเป็นการสนับสนุน", "rationale": "การสนับสนุนสินค้าจากต่างประเทศไม่ได้ช่วยส่งเสริมชื่อเสียงของประเทศ", "isCorrect": false},
+                        {"text": "เผยแพร่วัฒนธรรมที่ไม่เหมาะสมของชาติ", "rationale": "การเผยแพร่วัฒนธรรมที่ไม่เหมาะสมจะสร้างความเสื่อมเสียให้แก่ประเทศ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำใดที่แสดงถึงการเป็นผู้ฟังที่ดีเมื่อเพื่อนกำลังพูดคุย?",
+                    "hint": "การเป็นผู้ฟังที่ดีคือการให้ความสนใจกับสิ่งที่เพื่อนกำลังพูด",
+                    "answerOptions": [
+                        {"text": "สบตาและพยักหน้าให้เพื่อนเป็นระยะ", "rationale": "การสบตาและพยักหน้าเป็นการแสดงว่าเรากำลังตั้งใจฟังและให้ความสนใจ", "isCorrect": true},
+                        {"text": "เล่นโทรศัพท์มือถือขณะที่เพื่อนกำลังพูด", "rationale": "การกระทำนี้เป็นการไม่ให้เกียรติและแสดงว่าเราไม่ได้ตั้งใจฟัง", "isCorrect": false},
+                        {"text": "พูดแทรกขึ้นมาทันทีเมื่อเพื่อนพูดไม่จบ", "rationale": "การพูดแทรกเป็นการไม่ให้เกียรติและขัดจังหวะการสื่อสาร", "isCorrect": false},
+                        {"text": "ทำกิจกรรมอื่นไปด้วยในขณะที่เพื่อนกำลังพูด", "rationale": "การกระทำนี้เป็นการไม่ให้ความสำคัญกับสิ่งที่เพื่อนกำลังพูด", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำในข้อใดที่ถือเป็นการทำลายทรัพย์สินส่วนรวม?",
+                    "hint": "ทรัพย์สินส่วนรวมคือสิ่งที่เราทุกคนใช้ร่วมกัน",
+                    "answerOptions": [
+                        {"text": "ขีดเขียนบนโต๊ะเรียนและผนังห้องน้ำ", "rationale": "การขีดเขียนเป็นการทำลายทรัพย์สินของโรงเรียนซึ่งเป็นสมบัติส่วนรวม", "isCorrect": true},
+                        {"text": "ตัดแต่งต้นไม้ในสวนหลังบ้าน", "rationale": "การตัดแต่งต้นไม้ในบ้านของตนเองไม่ใช่การทำลายทรัพย์สินส่วนรวม", "isCorrect": false},
+                        {"text": "ช่วยเก็บขยะในโรงเรียน", "rationale": "การช่วยเก็บขยะเป็นการดูแลรักษาสิ่งแวดล้อมและทรัพย์สินส่วนรวม", "isCorrect": false},
+                        {"text": "ใช้ห้องสมุดอย่างถูกวิธี", "rationale": "การใช้ห้องสมุดอย่างถูกวิธีเป็นการดูแลรักษาสมบัติส่วนรวม", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "นักเรียนควรปฏิบัติตนอย่างไรเพื่อเป็นการเคารพกฎหมายจราจร?",
+                    "hint": "กฎหมายจราจรมีไว้เพื่อความปลอดภัยของทุกคน",
+                    "answerOptions": [
+                        {"text": "เดินข้ามถนนตรงทางม้าลายและรอสัญญาณไฟ", "rationale": "การเดินข้ามถนนตามกฎจราจรช่วยลดอุบัติเหตุและเป็นความปลอดภัยของทุกคน", "isCorrect": true},
+                        {"text": "วิ่งข้ามถนนทันทีเมื่อเห็นรถไม่มาก", "rationale": "การวิ่งข้ามถนนโดยไม่ดูสัญญาณไฟอาจทำให้เกิดอุบัติเหตุ", "isCorrect": false},
+                        {"text": "ปั่นจักรยานบนทางเท้าเพื่อหลีกเลี่ยงรถยนต์", "rationale": "ทางเท้ามีไว้สำหรับคนเดินเท้า การปั่นจักรยานบนทางเท้าเป็นการกีดขวางและอาจทำให้เกิดอันตรายได้", "isCorrect": false},
+                        {"text": "ข้ามถนนโดยไม่สนใจสัญญาณไฟจราจร", "rationale": "การไม่สนใจสัญญาณไฟจราจรเป็นการไม่เคารพกฎหมายและเสี่ยงต่ออุบัติเหตุ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การดูแลรักษาสิ่งแวดล้อมในโรงเรียนสามารถเริ่มต้นได้ด้วยการกระทำใด?",
+                    "hint": "สิ่งที่ง่ายที่สุดที่เราทำได้ทุกวัน",
+                    "answerOptions": [
+                        {"text": "ทิ้งขยะลงในถังขยะให้ถูกต้องตามประเภท", "rationale": "การทิ้งขยะให้ถูกที่ถูกประเภทเป็นการรักษาสิ่งแวดล้อมที่ง่ายที่สุด", "isCorrect": true},
+                        {"text": "ใช้กระดาษและพลาสติกให้มากที่สุด", "rationale": "การใช้ทรัพยากรอย่างสิ้นเปลืองทำลายสิ่งแวดล้อม", "isCorrect": false},
+                        {"text": "ไม่ช่วยเพื่อนเก็บขยะที่ตกอยู่บนพื้น", "rationale": "การไม่ช่วยเหลือทำให้สภาพแวดล้อมไม่สะอาด", "isCorrect": false},
+                        {"text": "ตัดต้นไม้ในโรงเรียนเพื่อเป็นการตกแต่ง", "rationale": "การตัดต้นไม้เป็นการทำลายสิ่งแวดล้อม", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดแสดงถึงการยอมรับและให้เกียรติผู้สูงอายุในสังคมไทย?",
+                    "hint": "ผู้สูงอายุเป็นผู้ที่มีประสบการณ์และควรค่าแก่การเคารพ",
+                    "answerOptions": [
+                        {"text": "ลุกให้ที่นั่งบนรถประจำทางแก่ผู้สูงอายุ", "rationale": "การกระทำนี้แสดงถึงความเคารพและมีน้ำใจต่อผู้สูงอายุ", "isCorrect": true},
+                        {"text": "พูดคุยด้วยเสียงดังและไม่สุภาพกับผู้สูงอายุ", "rationale": "การกระทำนี้เป็นการไม่ให้เกียรติ", "isCorrect": false},
+                        {"text": "เดินชนผู้สูงอายุโดยไม่มีการขอโทษ", "rationale": "การกระทำนี้เป็นการไม่สุภาพและไม่มีมารยาท", "isCorrect": false},
+                        {"text": "ไม่สนใจและมองข้ามผู้สูงอายุในที่สาธารณะ", "rationale": "การกระทำนี้แสดงถึงความไม่ใส่ใจและไม่มีน้ำใจ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ทำไมเราจึงควรมีส่วนร่วมในกิจกรรมที่เป็นประโยชน์ต่อส่วนรวม เช่น กิจกรรมบำเพ็ญประโยชน์?",
+                    "hint": "ประโยชน์ของส่วนรวมก็คือประโยชน์ของตัวเราเองด้วย",
+                    "answerOptions": [
+                        {"text": "เพื่อให้สังคมมีความน่าอยู่และพัฒนาไปในทางที่ดี", "rationale": "การมีส่วนร่วมในกิจกรรมบำเพ็ญประโยชน์ทำให้สังคมดีขึ้น", "isCorrect": true},
+                        {"text": "เพื่อได้รับคำชมจากผู้ใหญ่เท่านั้น", "rationale": "การได้รับคำชมเป็นเพียงผลพลอยได้ แต่เป้าหมายหลักคือการสร้างประโยชน์แก่สังคม", "isCorrect": false},
+                        {"text": "เพื่อหลีกเลี่ยงการถูกลงโทษจากผู้ใหญ่", "rationale": "การมีส่วนร่วมควรมาจากความตั้งใจที่จะช่วยเหลือ ไม่ใช่เพราะกลัวการลงโทษ", "isCorrect": false},
+                        {"text": "เพื่อสร้างความลำบากให้ตัวเอง", "rationale": "การทำความดีไม่ได้สร้างความลำบาก แต่เป็นการสร้างประโยชน์แก่สังคม", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "หน้าที่ใดของพลเมืองที่เกี่ยวข้องกับการส่งเสริมประชาธิปไตย?",
+                    "hint": "ประชาธิปไตยคือการที่ประชาชนมีส่วนร่วมในการปกครอง",
+                    "answerOptions": [
+                        {"text": "การไปใช้สิทธิเลือกตั้งเมื่อมีอายุครบตามเกณฑ์", "rationale": "การใช้สิทธิเลือกตั้งเป็นหน้าที่สำคัญในการเลือกผู้แทนที่จะมาปกครองประเทศ", "isCorrect": true},
+                        {"text": "การมีบ้านหลังใหญ่และรถยนต์ราคาแพง", "rationale": "สิ่งเหล่านี้ไม่เกี่ยวข้องกับการปกครอง", "isCorrect": false},
+                        {"text": "การได้รับเงินเดือนจำนวนมาก", "rationale": "สิ่งนี้ไม่เกี่ยวข้องกับการปกครอง", "isCorrect": false},
+                        {"text": "การไม่สนใจข่าวสารบ้านเมือง", "rationale": "การไม่สนใจข่าวสารบ้านเมืองทำให้ไม่สามารถมีส่วนร่วมในการปกครองได้", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดเป็นคุณธรรมที่สำคัญที่สุดในการอยู่ร่วมกับผู้อื่นในสังคมที่มีความหลากหลาย?",
+                    "hint": "ทุกคนแตกต่างกัน แต่เราต้องอยู่ร่วมกันได้",
+                    "answerOptions": [
+                        {"text": "การยอมรับและเคารพความแตกต่างของแต่ละบุคคล", "rationale": "การยอมรับและเคารพความแตกต่างช่วยลดความขัดแย้งและทำให้สังคมอยู่ร่วมกันอย่างสงบสุข", "isCorrect": true},
+                        {"text": "การบังคับให้ผู้อื่นทำตามความคิดเห็นของเรา", "rationale": "การบังคับผู้อื่นเป็นการละเมิดสิทธิและเสรีภาพของผู้อื่น", "isCorrect": false},
+                        {"text": "การไม่พูดคุยกับคนที่มาจากต่างถิ่น", "rationale": "การไม่พูดคุยกับคนที่มาจากต่างถิ่นเป็นการแบ่งแยกและสร้างความไม่เข้าใจ", "isCorrect": false},
+                        {"text": "การตำหนิผู้อื่นในสิ่งที่เขาไม่ได้ทำตามเรา", "rationale": "การตำหนิผู้อื่นเป็นการสร้างความขัดแย้งและทำลายความสัมพันธ์", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ถ้าพบเห็นคนกำลังทำลายสิ่งของสาธารณะ ควรทำอย่างไร?",
+                    "hint": "การทำความดีต้องเริ่มจากตัวเอง",
+                    "answerOptions": [
+                        {"text": "รีบแจ้งผู้ใหญ่หรือเจ้าหน้าที่ที่เกี่ยวข้อง", "rationale": "การแจ้งผู้ใหญ่หรือเจ้าหน้าที่ที่เกี่ยวข้องเป็นการแสดงความรับผิดชอบและช่วยปกป้องทรัพย์สินส่วนรวม", "isCorrect": true},
+                        {"text": "ยืนดูเฉยๆ เพราะไม่ใช่เรื่องของเรา", "rationale": "การยืนดูเฉยๆ เป็นการไม่รับผิดชอบต่อสังคม", "isCorrect": false},
+                        {"text": "ร่วมทำลายด้วยเพราะคิดว่าสนุก", "rationale": "การทำลายทรัพย์สินส่วนรวมเป็นการกระทำที่ไม่ถูกต้อง", "isCorrect": false},
+                        {"text": "ถ่ายรูปแล้วนำไปโพสต์ลงในสื่อออนไลน์", "rationale": "การโพสต์ลงในสื่อออนไลน์อาจไม่ช่วยแก้ปัญหา", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดเป็นวิธีที่ถูกต้องในการแสดงความเคารพต่อธงชาติไทย?",
+                    "hint": "ธงชาติคือสัญลักษณ์ที่แสดงถึงความเป็นชาติของเรา",
+                    "answerOptions": [
+                        {"text": "ยืนตรงและทำความเคารพเมื่อได้ยินเพลงชาติ", "rationale": "การยืนตรงและทำความเคารพเมื่อได้ยินเพลงชาติเป็นการแสดงความเคารพต่อชาติ", "isCorrect": true},
+                        {"text": "นำธงชาติไปประดับตกแต่งตามที่ต่างๆ", "rationale": "การนำธงชาติไปประดับตกแต่งต้องทำอย่างเหมาะสมและมีเกียรติ", "isCorrect": false},
+                        {"text": "ใช้ผ้าพันธงชาติแทนผ้าเช็ดตัว", "rationale": "การกระทำนี้เป็นการไม่ให้เกียรติธงชาติ", "isCorrect": false},
+                        {"text": "ไม่สนใจเมื่อธงชาติกำลังถูกชักขึ้นหรือลง", "rationale": "การไม่สนใจเป็นการไม่ให้ความสำคัญกับสัญลักษณ์ของชาติ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "การกระทำในข้อใดที่แสดงถึงการใช้จ่ายอย่างมีวินัยและประหยัดอดออม?",
+                    "hint": "การใช้จ่ายอย่างมีวินัยคือการวางแผนการใช้จ่าย",
+                    "answerOptions": [
+                        {"text": "วางแผนการใช้เงินและเก็บเงินที่เหลือไว้", "rationale": "การวางแผนการใช้เงินและเก็บเงินเป็นการใช้จ่ายอย่างมีวินัยและประหยัด", "isCorrect": true},
+                        {"text": "ใช้จ่ายเงินทั้งหมดที่ได้รับมาในแต่ละวัน", "rationale": "การใช้จ่ายเงินทั้งหมดเป็นการใช้จ่ายที่ขาดวินัย", "isCorrect": false},
+                        {"text": "ซื้อขนมและของเล่นทุกอย่างที่อยากได้", "rationale": "การซื้อของฟุ่มเฟือยเป็นการใช้จ่ายที่ไม่คุ้มค่า", "isCorrect": false},
+                        {"text": "ขอเงินจากพ่อแม่เพิ่มเมื่อเงินหมด", "rationale": "การขอเงินเพิ่มโดยไม่มีเหตุผลเป็นการใช้จ่ายที่ขาดวินัย", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ทำไมเราจึงต้องรักษาความสะอาดในพื้นที่สาธารณะ?",
+                    "hint": "พื้นที่สาธารณะคือที่ที่เราทุกคนใช้ร่วมกัน",
+                    "answerOptions": [
+                        {"text": "เพื่อความสวยงามและสุขภาพที่ดีของทุกคน", "rationale": "การรักษาความสะอาดทำให้พื้นที่สาธารณะน่าอยู่และส่งเสริมสุขภาพที่ดีของทุกคน", "isCorrect": true},
+                        {"text": "เพื่อที่จะได้ถูกชมเชยจากผู้อื่น", "rationale": "การถูกชมเชยเป็นเพียงผลพลอยได้ แต่เป้าหมายหลักคือเพื่อประโยชน์ของส่วนรวม", "isCorrect": false},
+                        {"text": "เพราะถ้าไม่ทำจะถูกปรับ", "rationale": "แม้การถูกปรับจะเป็นผลที่ตามมา แต่เหตุผลหลักคือเพื่อประโยชน์ของส่วนรวม", "isCorrect": false},
+                        {"text": "เพื่อที่จะได้ไม่ต้องทิ้งขยะอีกต่อไป", "rationale": "ทุกคนต้องทิ้งขยะ แต่ต้องทิ้งให้ถูกที่", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "เมื่อมีเพื่อนนักเรียนที่แตกต่างจากเรา เช่น มาจากต่างจังหวัด ควรปฏิบัติตนอย่างไร?",
+                    "hint": "ลองคิดว่าถ้าเราเป็นคนๆ นั้น เราอยากให้คนอื่นทำอย่างไรกับเรา",
+                    "answerOptions": [
+                        {"text": "เป็นเพื่อนและเรียนรู้จากความแตกต่างของเขา", "rationale": "การเป็นเพื่อนและเรียนรู้จากความแตกต่างช่วยสร้างความเข้าใจและมิตรภาพ", "isCorrect": true},
+                        {"text": "ไม่พูดคุยกับเขาเพราะกลัวว่าเราจะไม่เข้าใจกัน", "rationale": "การไม่พูดคุยเป็นการสร้างกำแพงและไม่เปิดโอกาสให้เกิดมิตรภาพ", "isCorrect": false},
+                        {"text": "ล้อเลียนสำเนียงการพูดของเขาเพื่อความสนุกสนาน", "rationale": "การล้อเลียนเป็นการไม่ให้เกียรติและทำร้ายจิตใจของผู้อื่น", "isCorrect": false},
+                        {"text": "พยายามชวนให้เขาเปลี่ยนการพูดให้เหมือนกับเรา", "rationale": "การพยายามให้เขาเปลี่ยนเป็นการไม่ยอมรับในตัวตนของเขา", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "ข้อใดเป็นหน้าที่สำคัญของเยาวชนในการอนุรักษ์ธรรมชาติและสิ่งแวดล้อม?",
+                    "hint": "การกระทำเล็กๆ ของเราสามารถสร้างการเปลี่ยนแปลงที่ยิ่งใหญ่ได้",
+                    "answerOptions": [
+                        {"text": "เข้าร่วมกิจกรรมปลูกป่าและลดการใช้ถุงพลาสติก", "rationale": "การเข้าร่วมกิจกรรมปลูกป่าและการลดการใช้ถุงพลาสติกเป็นการกระทำที่ช่วยอนุรักษ์ธรรมชาติและสิ่งแวดล้อม", "isCorrect": true},
+                        {"text": "ปล่อยให้ขยะเกลื่อนกลาดในที่สาธารณะ", "rationale": "การปล่อยให้ขยะเกลื่อนกลาดเป็นการทำลายสิ่งแวดล้อม", "isCorrect": false},
+                        {"text": "ตัดต้นไม้ในป่าเพื่อนำมาทำเป็นของเล่น", "rationale": "การตัดต้นไม้เป็นการทำลายสิ่งแวดล้อม", "isCorrect": false},
+                        {"text": "ใช้น้ำอย่างสิ้นเปลืองและไม่ประหยัด", "rationale": "การใช้น้ำอย่างสิ้นเปลืองเป็นการทำลายทรัพยากรน้ำ", "isCorrect": false}
+                    ]
+                },
+                {
+                    "question": "เมื่อมีผู้ใหญ่สั่งให้เราทำสิ่งที่ไม่ถูกต้องตามกฎหมาย ควรทำอย่างไร?",
+                    "hint": "ความรับผิดชอบของเราคือการทำในสิ่งที่ถูกต้องเสมอ",
+                    "answerOptions": [
+                        {"text": "ปฏิเสธอย่างสุภาพและอธิบายเหตุผล", "rationale": "การปฏิเสธอย่างสุภาพเป็นการแสดงความรับผิดชอบต่อตนเองและสังคม", "isCorrect": true},
+                        {"text": "ทำตามที่ผู้ใหญ่บอกเพราะต้องเชื่อฟังผู้ใหญ่", "rationale": "การเชื่อฟังผู้ใหญ่เป็นสิ่งที่ดี แต่ต้องคำนึงถึงความถูกต้องด้วย", "isCorrect": false},
+                        {"text": "แอบไปทำโดยไม่ให้ใครเห็น", "rationale": "การกระทำนี้เป็นการไม่รับผิดชอบและอาจทำให้เกิดผลเสียตามมา", "isCorrect": false},
+                        {"text": "รีบแจ้งตำรวจเพื่อจับกุมผู้ใหญ่คนนั้น", "rationale": "การแจ้งตำรวจควรเป็นทางเลือกสุดท้ายเมื่อไม่มีทางเลือกอื่น", "isCorrect": false}
+                    ]
+                }
+            ]
+        };
+
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const hintBtn = document.getElementById('hint-btn');
+        const hintBox = document.getElementById('hint-box');
+        const hintText = document.getElementById('hint-text');
+        const nextBtn = document.getElementById('next-btn');
+        const rationaleContainer = document.getElementById('rationale-container');
+        const rationaleText = document.getElementById('rationale-text');
+        const quizContent = document.getElementById('quiz-content');
+        const controlButtons = document.getElementById('control-buttons');
+        const resultsSection = document.getElementById('results-section');
+        const scoreText = document.getElementById('score-text');
+        const restartBtn = document.getElementById('restart-btn');
+        const answerReviewSection = document.getElementById('answer-review-section');
+        const answerReviewList = document.getElementById('answer-review-list');
+        const downloadBtn = document.getElementById('download-btn');
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        // Function to shuffle the array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Shuffle questions when the page loads
+        shuffleArray(quizData.questions);
+
+        function loadQuestion() {
+            // Check if all questions are answered
+            if (currentQuestionIndex >= quizData.questions.length) {
+                showResults();
+                return;
+            }
+
+            const currentQuestion = quizData.questions[currentQuestionIndex];
+            
+            // Clear previous question and options
+            questionText.textContent = `${currentQuestionIndex + 1}. ${currentQuestion.question}`;
+            optionsContainer.innerHTML = '';
+            rationaleContainer.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            hintBtn.disabled = false;
+
+            // Shuffle answer options
+            shuffleArray(currentQuestion.answerOptions);
+
+            currentQuestion.answerOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.text;
+                button.classList.add(
+                    'btn-option', 
+                    'w-full', 
+                    'p-4', 
+                    'bg-gray-100', 
+                    'rounded-lg', 
+                    'shadow-md', 
+                    'text-left', 
+                    'text-base', 
+                    'md:text-lg', 
+                    'text-gray-800'
+                );
+                button.onclick = () => selectOption(option, button);
+                optionsContainer.appendChild(button);
+            });
+
+            // Hide hint box if it was shown for the previous question
+            hintBox.classList.add('hidden');
+        }
+
+        function selectOption(selectedOption, selectedButton) {
+            const currentQuestion = quizData.questions[currentQuestionIndex];
+            const allOptions = optionsContainer.querySelectorAll('.btn-option');
+            
+            let isCorrect = selectedOption.isCorrect;
+            let correctAnswerText = "";
+            let correctRationale = "";
+
+            // Disable all buttons to prevent multiple selections
+            allOptions.forEach(button => {
+                button.disabled = true;
+                const correspondingOption = currentQuestion.answerOptions.find(opt => opt.text === button.textContent);
+                if (correspondingOption.isCorrect) {
+                    button.classList.add('btn-correct');
+                    correctAnswerText = correspondingOption.text;
+                    correctRationale = correspondingOption.rationale;
+                } else {
+                    button.classList.remove('bg-gray-100', 'shadow-md');
+                    button.classList.add('bg-gray-300', 'opacity-70');
+                }
+            });
+
+            // Highlight the selected option as correct or incorrect
+            if (isCorrect) {
+                score++;
+            } else {
+                selectedButton.classList.add('btn-incorrect');
+            }
+
+            // Record the user's answer
+            userAnswers.push({
+                question: currentQuestion.question,
+                userAnswer: selectedOption.text,
+                isCorrect: isCorrect,
+                correctAnswer: correctAnswerText,
+                rationale: correctRationale
+            });
+
+            // Show rationale and the next button
+            rationaleText.textContent = selectedOption.rationale;
+            rationaleContainer.classList.remove('hidden');
+            nextBtn.classList.remove('hidden');
+            hintBtn.disabled = true;
+        }
+
+        function showResults() {
+            quizContent.classList.add('hidden');
+            controlButtons.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            scoreText.textContent = `คุณได้คะแนน ${score} จาก ${quizData.questions.length} ข้อ`;
+            
+            showAnswerReview();
+        }
+
+        function showAnswerReview() {
+            answerReviewSection.classList.remove('hidden');
+            answerReviewList.innerHTML = '';
+
+            userAnswers.forEach((answer, index) => {
+                const item = document.createElement('div');
+                item.classList.add('bg-gray-50', 'p-4', 'rounded-lg', 'shadow-sm');
+
+                const questionP = document.createElement('p');
+                questionP.classList.add('font-semibold', 'text-gray-700', 'mb-2');
+                questionP.textContent = `${index + 1}. ${answer.question}`;
+                item.appendChild(questionP);
+
+                const userAnswerP = document.createElement('p');
+                userAnswerP.classList.add('text-sm', 'mb-1');
+                if (answer.isCorrect) {
+                    userAnswerP.innerHTML = `คำตอบของคุณ: <span class="text-green-600 font-medium">${answer.userAnswer} (ถูกต้อง)</span>`;
+                } else {
+                    userAnswerP.innerHTML = `คำตอบของคุณ: <span class="text-red-600 font-medium">${answer.userAnswer} (ผิด)</span>`;
+                }
+                item.appendChild(userAnswerP);
+
+                const correctAnswerP = document.createElement('p');
+                correctAnswerP.classList.add('text-sm', 'text-green-600');
+                correctAnswerP.innerHTML = `เฉลย: ${answer.correctAnswer}`;
+                item.appendChild(correctAnswerP);
+
+                const rationaleP = document.createElement('p');
+                rationaleP.classList.add('text-xs', 'text-gray-500', 'mt-2');
+                rationaleP.innerHTML = `เหตุผล: ${answer.rationale}`;
+                item.appendChild(rationaleP);
+                
+                answerReviewList.appendChild(item);
+            });
+        }
+
+        // Event Listeners
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            loadQuestion();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = [];
+            shuffleArray(quizData.questions); // Reshuffle for a new test
+            
+            quizContent.classList.remove('hidden');
+            controlButtons.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            answerReviewSection.classList.add('hidden');
+            loadQuestion();
+        });
+
+        hintBtn.addEventListener('click', () => {
+            const currentQuestion = quizData.questions[currentQuestionIndex];
+            hintText.textContent = currentQuestion.hint;
+            hintBox.classList.remove('hidden');
+        });
+        
+        // Function to download PDF of results
+        downloadBtn.addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add a custom font to support Thai characters
+            const thaiFont = 'THSarabunNew';
+            doc.addFileToVFS('THSarabunNew-Regular-normal.ttf', 'AAEAAAAQA...base64 encoded font data...'); // This is a placeholder, a real base64 font data should be here
+            doc.addFont('THSarabunNew-Regular-normal.ttf', 'THSarabunNew', 'normal');
+            doc.setFont('THSarabunNew');
+
+            doc.setFontSize(20);
+            doc.text("ผลการทดสอบหน้าที่พลเมือง", 105, 20, null, null, "center");
+            doc.setFontSize(16);
+            doc.text(`คะแนน: ${score} จาก ${quizData.questions.length}`, 105, 30, null, null, "center");
+
+            const tableData = userAnswers.map((answer, index) => [
+                index + 1,
+                answer.question,
+                answer.userAnswer,
+                answer.correctAnswer,
+                answer.isCorrect ? "✅" : "❌",
+                answer.rationale
+            ]);
+
+            doc.autoTable({
+                startY: 40,
+                head: [['ข้อ', 'คำถาม', 'คำตอบของคุณ', 'เฉลย', 'ผล', 'เหตุผล']],
+                body: tableData,
+                styles: { font: 'THSarabunNew', fontStyle: 'normal' },
+                headStyles: { fillColor: '#3B82F6' },
+                theme: 'striped'
+            });
+
+            doc.save('ผลการทดสอบหน้าที่พลเมือง.pdf');
+        });
+        
+        // Initial load
+        loadQuestion();
+    </script>
+</body>
+</html>
