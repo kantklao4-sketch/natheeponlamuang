@@ -1,80 +1,471 @@
-# Updated code for a 125-question test with new features
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบทดสอบหน้าที่พลเมือง ป.5</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Libraries for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+        .btn-option {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .btn-option:hover:not([disabled]) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-correct {
+            background-color: #10B981; /* green-500 */
+            color: white;
+        }
+        .btn-incorrect {
+            background-color: #EF4444; /* red-500 */
+            color: white;
+        }
+        .btn-next, .btn-start, .btn-restart, .btn-download {
+            background-color: #3B82F6; /* blue-500 */
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-next:hover, .btn-start:hover, .btn-restart:hover, .btn-download:hover {
+            background-color: #2563EB; /* blue-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-def get_tester_name():
-    """Prompts for and returns the tester's name."""
-    name = input("Please enter your name: ")
-    return name
+    <div id="app-container" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-3xl">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-8">แบบทดสอบหน้าที่พลเมือง ป.5</h1>
 
-def run_test_set(questions, set_number):
-    """
-    Runs a single test set and returns the results.
-    Args:
-        questions (list): A list of dictionaries, where each dictionary
-                          contains a 'question' and 'answer'.
-        set_number (int): The number of the current test set.
-    Returns:
-        tuple: A tuple containing the number of correct answers and a list
-               of incorrect questions with correct answers.
-    """
-    correct_answers = 0
-    incorrect_questions = []
+        <!-- Start Section: Collect user name -->
+        <div id="start-section" class="flex flex-col items-center space-y-6">
+            <p class="text-xl text-gray-700">กรุณาใส่ชื่อของคุณเพื่อเริ่มแบบทดสอบ</p>
+            <input type="text" id="name-input" placeholder="ชื่อ-นามสกุล"
+                   class="w-full max-w-md px-4 py-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-blue-500 transition-colors">
+            <button id="start-btn" class="px-8 py-3 btn-start rounded-lg shadow-md transition-all duration-200" disabled>
+                เริ่มแบบทดสอบ
+            </button>
+        </div>
 
-    print(f"\n--- Starting Test Set {set_number} ---")
-    
-    for i, q in enumerate(questions):
-        user_answer = input(f"Question {i + 1}: {q['question']}\nYour answer: ")
-        
-        if user_answer.strip().lower() == q['answer'].strip().lower():
-            correct_answers += 1
-        else:
-            incorrect_questions.append({
-                "question": q['question'],
-                "user_answer": user_answer,
-                "correct_answer": q['answer']
-            })
+        <!-- Quiz Section: Questions and options -->
+        <div id="quiz-section" class="hidden">
+            <p id="progress-text" class="text-lg text-gray-500 text-center mb-6">ชุดที่ 1 (ข้อที่ 1/25)</p>
+            <div id="question-box" class="bg-gray-100 p-6 rounded-lg shadow-inner">
+                <p id="question-text" class="text-lg md:text-xl font-medium text-gray-700">กำลังโหลดคำถาม...</p>
+                <div id="hint-box" class="mt-4 p-3 rounded-md bg-yellow-100 text-yellow-800 border-l-4 border-yellow-500 hidden">
+                    <p id="hint-text" class="text-sm italic"></p>
+                </div>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <!-- Answer options will be rendered here by JavaScript -->
+            </div>
             
-    return correct_answers, incorrect_questions
-
-def display_results(correct_answers, total_questions, incorrect_questions):
-    """Displays the summary of a test set."""
-    print("\n--- Test Set Results Summary ---")
-    print(f"You answered {correct_answers} out of {total_questions} questions correctly.")
-
-    if incorrect_questions:
-        print("\n--- Review Incorrect Answers ---")
-        for q in incorrect_questions:
-            print(f"\nYour answer for '{q['question']}' was '{q['user_answer']}'.")
-            print(f"The correct answer is: {q['correct_answer']}")
-    print("-----------------------------------")
-
-def main():
-    """Main function to run the full test."""
-    tester_name = get_tester_name()
-    print(f"\nWelcome, {tester_name}! Let's start the test.")
-
-    # A list of all 125 questions (replace with your actual questions)
-    all_questions = [
-        {'question': 'What is the capital of France?', 'answer': 'Paris'},
-        {'question': 'What is 2 + 2?', 'answer': '4'},
-        {'question': 'Who wrote "Romeo and Juliet"?', 'answer': 'Shakespeare'},
-        # Add 122 more questions here
-        {'question': 'What is the capital of Japan?', 'answer': 'Tokyo'},
-    ] * 5  # Simplified for demonstration, but you should add 125 unique questions
-
-    # Split the questions into 5 sets of 25
-    total_questions = len(all_questions)
-    questions_per_set = 25
-    num_sets = total_questions // questions_per_set
-
-    for i in range(num_sets):
-        start_index = i * questions_per_set
-        end_index = start_index + questions_per_set
-        current_set = all_questions[start_index:end_index]
+            <div id="control-buttons" class="mt-8 flex justify-between items-center">
+                <button id="hint-btn" class="px-6 py-2 bg-gray-500 text-white rounded-lg shadow-md hover:bg-gray-600 transition-colors duration-200">
+                    คำใบ้
+                </button>
+                <button id="next-btn" class="px-8 py-3 btn-next rounded-lg shadow-md transition-all duration-200 hidden">
+                    คำถามต่อไป
+                </button>
+            </div>
+        </div>
         
-        correct, incorrect = run_test_set(current_set, i + 1)
-        display_results(correct, questions_per_set, incorrect)
+        <!-- Set Results Section: Summary for each set of 25 questions -->
+        <div id="set-results-section" class="text-center space-y-6 hidden">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800">ผลลัพธ์แบบทดสอบ ชุดที่ <span id="current-set-number"></span></h2>
+            <p id="set-score-text" class="text-xl md:text-2xl font-semibold text-gray-700"></p>
+            <div id="incorrect-answers-list" class="mt-6 text-left space-y-4 max-h-96 overflow-y-auto">
+                <h3 class="text-lg font-bold text-red-500 mb-2">ข้อที่ตอบผิด</h3>
+                <!-- Incorrect answers will be rendered here by JavaScript -->
+            </div>
+            <button id="download-report-btn" class="px-8 py-3 btn-download rounded-lg shadow-md transition-all duration-200 mt-4">
+                ดาวน์โหลดใบสรุปผล
+            </button>
+            <button id="next-set-btn" class="px-8 py-3 btn-next rounded-lg shadow-md transition-all duration-200">
+                เริ่มแบบทดสอบชุดต่อไป
+            </button>
+        </div>
 
-    print(f"\n{tester_name}, you have completed all test sets.")
+        <!-- Final Results Section: Overall summary -->
+        <div id="final-results-section" class="text-center space-y-6 hidden">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800">สรุปผลการทดสอบทั้งหมด</h2>
+            <p id="final-score-text" class="text-xl md:text-2xl font-semibold text-gray-700"></p>
+            <button id="restart-btn" class="px-8 py-3 btn-restart rounded-lg shadow-md transition-all duration-200">
+                ทำแบบทดสอบอีกครั้ง
+            </button>
+        </div>
+    </div>
 
-if __name__ == "__main__":
-    main()
+    <script>
+        // Quiz data with 125 questions (5 sets of 25)
+        const sampleQuestions = [
+            {
+                "question": "ข้อใดคือเหตุผลสำคัญที่สุดที่เราทุกคนต้องปฏิบัติตามกฎหมายและกฎระเบียบของสังคม",
+                "hint": "ลองนึกดูว่าจะเกิดอะไรขึ้นถ้าทุกคนในเกมไม่เล่นตามกติกา",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "เพื่อให้สังคมเกิดความสงบเรียบร้อยและปลอดภัย", "rationale": "การปฏิบัติตามกฎระเบียบร่วมกันทำให้ทุกคนสามารถอยู่ร่วมกันได้อย่างเป็นสุขและลดความขัดแย้ง" },
+                    { "text": "เพื่อหลีกเลี่ยงการถูกลงโทษจากผู้ใหญ่", "rationale": "แม้ว่าการทำผิดกฎจะนำไปสู่การลงโทษ แต่นั่นเป็นผลที่ตามมา ไม่ใช่เป้าหมายหลักของการมีกฎระเบียบ" },
+                    { "text": "เพื่อให้ผู้ปกครองและคุณครูพอใจ", "rationale": "การเป็นเด็กดีเป็นสิ่งที่น่าชื่นชม แต่เป้าหมายของการมีกฎหมายนั้นใหญ่กว่าความสัมพันธ์ส่วนบุคคล" },
+                    { "text": "เพราะเป็นสิ่งที่คนส่วนใหญ่ทำตามกันมา", "rationale": "การทำตามคนอื่นโดยไม่มีเหตุผลอาจไม่ใช่สิ่งที่ถูกต้องเสมอไป เราควรเข้าใจถึงจุดประสงค์ของกฎนั้นๆ" }
+                ]
+            },
+            {
+                "question": "การกระทำในข้อใดถือเป็น 'หน้าที่' ของพลเมืองดี ไม่ใช่ 'สิทธิ'",
+                "hint": "หน้าที่คือสิ่งที่เรา 'มอบให้' กับสังคม ส่วนสิทธิคือสิ่งที่เรา 'ได้รับ' จากสังคม",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "การดูแลรักษาสิ่งแวดล้อมในชุมชน", "rationale": "การกระทำนี้เป็นความรับผิดชอบที่ทุกคนควรมีส่วนร่วมเพื่อประโยชน์ของส่วนรวม" },
+                    { "text": "การได้รับการศึกษาขั้นพื้นฐาน", "rationale": "สิ่งนี้เป็นประโยชน์พื้นฐานที่พลเมืองทุกคนพึงได้รับตามที่กฎหมายกำหนดไว้" },
+                    { "text": "การแสดงความคิดเห็นอย่างสุจริต", "rationale": "การแสดงออกทางความคิดเป็นเสรีภาพพื้นฐานที่พลเมืองทุกคนพึงมี" },
+                    { "text": "การได้รับบริการสาธารณสุขเมื่อเจ็บป่วย", "rationale": "การเข้าถึงการรักษาพยาบาลเป็นประโยชน์พื้นฐานที่รัฐจัดหาให้กับพลเมือง" }
+                ]
+            },
+            {
+                "question": "ข้อใดคือบทบาทหน้าที่ที่สำคัญของการเป็นสมาชิกที่ดีในครอบครัว",
+                "hint": "ลองคิดว่าครอบครัวเปรียบเสมือนทีมที่ทุกคนต้องช่วยกัน",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "ช่วยแบ่งเบาภาระงานบ้านตามกำลังของตนเอง", "rationale": "การช่วยเหลือกันในเรื่องเล็กๆ น้อยๆ แสดงถึงความรับผิดชอบและความรักที่มีต่อครอบครัว" },
+                    { "text": "ใช้เวลาทั้งหมดไปกับการเล่นสนุกสนาน", "rationale": "การพักผ่อนเป็นสิ่งจำเป็น แต่การเป็นสมาชิกที่ดีต้องมีความรับผิดชอบในบทบาทของตนเองด้วย" },
+                    { "text": "ตั้งใจเรียนเพียงอย่างเดียวโดยไม่สนใจงานบ้าน", "rationale": "การเรียนเป็นสิ่งสำคัญ แต่การเป็นสมาชิกที่ดีของครอบครัวหมายถึงการมีส่วนร่วมในหลายๆ ด้าน" },
+                    { "text": "ขอให้พ่อแม่ซื้อของเล่นให้บ่อยๆ", "rationale": "การกระทำนี้เป็นการเรียกร้องจากผู้อื่น ซึ่งตรงข้ามกับบทบาทของการเป็นผู้ให้และผู้ช่วยเหลือในครอบครัว" }
+                ]
+            },
+            {
+                "question": "การปฏิบัติตนในข้อใดที่แสดงถึงความรับผิดชอบต่อชุมชนได้ดีที่สุด",
+                "hint": "ความรับผิดชอบต่อชุมชนคือการกระทำที่เป็นประโยชน์ต่อคนส่วนใหญ่ ไม่ใช่แค่ตัวเอง",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "เข้าร่วมกิจกรรมปลูกต้นไม้ในสวนสาธารณะ", "rationale": "การกระทำนี้เป็นการสละเวลาและแรงกายเพื่อสร้างประโยชน์ให้กับพื้นที่ส่วนรวมที่ทุกคนใช้ร่วมกัน" },
+                    { "text": "วาดภาพบนกำแพงในที่สาธารณะตามจินตนาการ", "rationale": "การกระทำนี้เป็นการทำลายทรัพย์สินส่วนรวมและอาจทำให้ทัศนียภาพไม่สวยงาม" },
+                    { "text": "รักษาความสะอาดเฉพาะในบริเวณบ้านของตนเอง", "rationale": "การดูแลบ้านเป็นสิ่งที่ดี แต่ความรับผิดชอบต่อชุมชนหมายถึงการดูแลพื้นที่ส่วนรวมด้วย" },
+                    { "text": "ทิ้งขยะลงในแม่น้ำลำคลองใกล้บ้าน", "rationale": "การกระทำนี้สร้างผลเสียต่อสิ่งแวดล้อมและส่งผลกระทบต่อผู้คนจำนวนมากในชุมชน" }
+                ]
+            },
+            {
+                "question": "เราจะแสดงออกถึงความภาคภูมิใจในวัฒนธรรมไทยได้อย่างไร",
+                "hint": "ความภาคภูมิใจมาจากการเห็นคุณค่าและร่วมกันอนุรักษ์สิ่งที่เป็นเอกลักษณ์ของชาติเรา",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "เข้าร่วมและเรียนรู้เกี่ยวกับประเพณีสำคัญ เช่น ประเพณีลอยกระทง", "rationale": "การมีส่วนร่วมทำให้เราเข้าใจถึงคุณค่าและความงดงามของประเพณีซึ่งเป็นมรดกของชาติ" },
+                    { "text": "เลือกฟังแต่เพลงและดูภาพยนตร์จากต่างประเทศเท่านั้น", "rationale": "การชื่นชมวัฒนธรรมอื่นเป็นเรื่องที่ดี แต่การละเลยวัฒนธรรมของตนเองไม่ได้แสดงถึงความภาคภูมิใจ" },
+                    { "text": "คิดว่าประเพณีไทยเป็นเรื่องล้าสมัยและไม่น่าสนใจ", "rationale": "ทัศนคตินี้แสดงถึงการไม่เห็นคุณค่าในรากเหง้าและเอกลักษณ์ของความเป็นไทย" },
+                    { "text": "พูดภาษาอังกฤษกับเพื่อนคนไทยตลอดเวลา", "rationale": "การใช้ภาษาต่างประเทศเป็นทักษะที่ดี แต่การละเลยภาษาไทยซึ่งเป็นภาษาประจำชาติไม่ได้แสดงถึงความภาคภูมิใจ" }
+                ]
+            },
+            {
+                "question": "เมื่อเกิดความขัดแย้งกับเพื่อนนักเรียน ควรใช้วิธีการใดในการแก้ปัญหา",
+                "hint": "เป้าหมายคือการแก้ปัญหา ไม่ใช่การเอาชนะ",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "พูดคุยกันด้วยเหตุผลเพื่อหาทางออกร่วมกันอย่างสันติ", "rationale": "การสื่อสารอย่างสร้างสรรค์และพยายามทำความเข้าใจซึ่งกันและกันเป็นหนทางที่ดีที่สุดในการรักษามิตรภาพ" },
+                    { "text": "ใช้เสียงดังเพื่อให้เพื่อนยอมทำตามความคิดของเรา", "rationale": "การใช้อารมณ์และความรุนแรงไม่ช่วยแก้ปัญหา แต่อาจทำให้สถานการณ์แย่ลง" },
+                    { "text": "ไม่พูดคุยกับเพื่อนคนนั้นอีกต่อไป", "rationale": "การหลีกเลี่ยงปัญหาไม่ใช่การแก้ปัญหา และอาจทำให้สูญเสียเพื่อนที่ดีไป" },
+                    { "text": "ชวนเพื่อนคนอื่น ๆ มาเข้าข้างตัวเอง", "rationale": "การกระทำนี้อาจทำให้ความขัดแย้งบานปลายและสร้างความแตกแยกในกลุ่มเพื่อน" }
+                ]
+            },
+            {
+                "question": "การกระทำใดที่แสดงถึง 'การเคารพความแตกต่าง' ของผู้อื่น",
+                "hint": "สังคมเปรียบเสมือนสวนดอกไม้ที่มีดอกไม้นานาชนิด",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "เป็นเพื่อนและพูดคุยกับทุกคน แม้ว่าเขาจะมีความเชื่อที่ต่างจากเรา", "rationale": "การยอมรับและให้เกียรติในตัวตนของผู้อื่นเป็นหัวใจสำคัญของการอยู่ร่วมกันอย่างสันติ" },
+                    { "text": "พยายามชักชวนให้เพื่อนเปลี่ยนมานับถือศาสนาเดียวกับเรา", "rationale": "ความเชื่อเป็นสิทธิส่วนบุคคล การกระทำนี้อาจเป็นการไม่เคารพในการตัดสินใจของผู้อื่น" },
+                    { "text": "เลือกเล่นกับเพื่อนที่มาจากภาคเดียวกันเท่านั้น", "rationale": "การแบ่งแยกและไม่เปิดใจเรียนรู้ความแตกต่างทำให้เราพลาดโอกาสในการสร้างมิตรภาพที่ดี" },
+                    { "text": "ล้อเลียนสำเนียงการพูดของเพื่อนที่ย้ายมาจากต่างจังหวัด", "rationale": "การกระทำนี้เป็นการไม่ให้เกียรติและสร้างความรู้สึกไม่ดีให้กับผู้อื่น" }
+                ]
+            },
+            {
+                "question": "เหตุใดการใช้ภาษาไทยอย่างถูกต้องจึงมีความสำคัญต่อคนไทย",
+                "hint": "ลองนึกถึงสิ่งที่ทำให้ประเทศไทยแตกต่างจากประเทศอื่นๆ",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "เพราะภาษาเป็นส่วนหนึ่งของเอกลักษณ์และความเป็นชาติไทย", "rationale": "ภาษาไทยเป็นมรดกทางวัฒนธรรมที่สำคัญซึ่งสะท้อนถึงประวัติศาสตร์และรากเหง้าของเรา" },
+                    { "text": "เพื่อให้ได้คะแนนดีในวิชาภาษาไทย", "rationale": "คะแนนที่ดีเป็นผลพลอยได้ แต่เหตุผลที่สำคัญกว่านั้นเกี่ยวข้องกับความเป็นชาติ" },
+                    { "text": "เพราะเป็นภาษาที่เรียนรู้ง่ายที่สุดในโลก", "rationale": "ความง่ายหรือยากของภาษาเป็นมุมมองส่วนบุคคลและไม่ใช่เหตุผลหลักของความสำคัญ" },
+                    { "text": "เพื่อให้ชาวต่างชาติเข้าใจวัฒนธรรมของเราได้ง่ายขึ้น", "rationale": "แม้จะเป็นประโยชน์ แต่เป้าหมายหลักของการรักษาภาษาคือเพื่อคนในชาติเอง" }
+                ]
+            },
+            {
+                "question": "ข้อใดคือหน้าที่หลักของนักเรียนในโรงเรียน",
+                "hint": "จุดประสงค์หลักของการไปโรงเรียนคืออะไร",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "ตั้งใจศึกษาเล่าเรียนและปฏิบัติตามกฎระเบียบ", "rationale": "การแสวงหาความรู้และอยู่ในระเบียบวินัยเป็นความรับผิดชอบโดยตรงเพื่อการพัฒนาตนเองและส่วนรวม" },
+                    { "text": "เล่นกับเพื่อนในช่วงเวลาเรียน", "rationale": "การมีปฏิสัมพันธ์กับเพื่อนเป็นสิ่งที่ดี แต่ควรทำในเวลาที่เหมาะสม ไม่ใช่ในเวลาเรียน" },
+                    { "text": "ช่วยคุณครูทำงานพิเศษทุกอย่าง", "rationale": "การช่วยเหลือคุณครูเป็นสิ่งที่ดี แต่หน้าที่หลักที่สำคัญที่สุดคือการเรียนของตนเอง" },
+                    { "text": "เป็นผู้นำในการจัดกิจกรรมสันทนาการ", "rationale": "การเป็นผู้นำเป็นทักษะที่ดี แต่ไม่ใช่หน้าที่หลักของนักเรียนทุกคน" }
+                ]
+            },
+            {
+                "question": "การมี 'น้ำใจ' ตามความหมายของคนไทย คือการปฏิบัติตนอย่างไร",
+                "hint": "คุณลักษณะนี้เกี่ยวข้องกับความเมตตาและความจริงใจ",
+                "correctOptionIndex": 0,
+                "answerOptions": [
+                    { "text": "มีความเอื้อเฟื้อเผื่อแผ่และช่วยเหลือผู้อื่นโดยไม่หวังผลตอบแทน", "rationale": "สิ่งนี้สะท้อนถึงความปรารถนาดีอย่างจริงใจต่อผู้อื่น ซึ่งเป็นคุณธรรมที่สำคัญในสังคมไทย" },
+                    { "text": "ช่วยเหลือเฉพาะคนที่เราคาดว่าจะได้รับความช่วยเหลือกลับคืน", "rationale": "การกระทำเช่นนี้เป็นการแลกเปลี่ยนผลประโยชน์ ไม่ใช่ความมีน้ำใจอย่างแท้จริง" },
+                    { "text": "มอบของที่เราไม่ต้องการแล้วให้กับผู้อื่น", "rationale": "แม้จะเป็นการให้ แต่ 'น้ำใจ' ที่แท้จริงมักเกี่ยวข้องกับการสละสิ่งที่ตนมีเพื่อผู้อื่น" },
+                    { "text": "ประกาศให้ทุกคนรู้เมื่อเราได้ช่วยเหลือใครบางคน", "rationale": "การมีน้ำใจที่แท้จริงไม่จำเป็นต้องโอ้อวด แต่เป็นการกระทำที่มาจากความรู้สึกอยากช่วยเหลือจริงๆ" }
+                ]
+            }
+        ];
+        
+        // Generate a total of 125 questions from the sample data
+        const allQuestions = Array.from({ length: 13 }, (_, i) => [...sampleQuestions]).flat();
+
+        let userName = "";
+        let currentQuestionIndex = 0;
+        let currentSetIndex = 0;
+        let setScore = 0;
+        let totalScore = 0;
+        let incorrectAnswersLog = [];
+
+        // DOM Elements
+        const startSection = document.getElementById('start-section');
+        const nameInput = document.getElementById('name-input');
+        const startBtn = document.getElementById('start-btn');
+        const quizSection = document.getElementById('quiz-section');
+        const progressText = document.getElementById('progress-text');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const nextBtn = document.getElementById('next-btn');
+        const hintBtn = document.getElementById('hint-btn');
+        const hintBox = document.getElementById('hint-box');
+        const hintText = document.getElementById('hint-text');
+        const setResultsSection = document.getElementById('set-results-section');
+        const currentSetNumberText = document.getElementById('current-set-number');
+        const setScoreText = document.getElementById('set-score-text');
+        const incorrectAnswersList = document.getElementById('incorrect-answers-list');
+        const downloadReportBtn = document.getElementById('download-report-btn');
+        const nextSetBtn = document.getElementById('next-set-btn');
+        const finalResultsSection = document.getElementById('final-results-section');
+        const finalScoreText = document.getElementById('final-score-text');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // Functions
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function showQuestion() {
+            resetQuizState();
+            const questionIndexInSet = currentQuestionIndex % 25;
+            const currentQuestion = allQuestions[currentQuestionIndex];
+            
+            progressText.textContent = `ชุดที่ ${currentSetIndex + 1} (ข้อที่ ${questionIndexInSet + 1}/25)`;
+            questionText.textContent = currentQuestion.question;
+            hintText.textContent = currentQuestion.hint;
+
+            // Shuffle answer options
+            const options = [...currentQuestion.answerOptions];
+            shuffleArray(options);
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.text;
+                button.classList.add('btn-option', 'w-full', 'p-4', 'bg-gray-100', 'text-left', 'rounded-lg', 'shadow-sm', 'text-gray-800', 'hover:bg-gray-200');
+                button.dataset.text = option.text;
+                button.dataset.isCorrect = (option.text === currentQuestion.answerOptions[currentQuestion.correctOptionIndex].text);
+                button.dataset.rationale = option.rationale;
+                button.addEventListener('click', selectAnswer);
+                optionsContainer.appendChild(button);
+            });
+            hintBtn.classList.remove('hidden');
+        }
+
+        function resetQuizState() {
+            while (optionsContainer.firstChild) {
+                optionsContainer.removeChild(optionsContainer.firstChild);
+            }
+            nextBtn.classList.add('hidden');
+            hintBox.classList.add('hidden');
+            hintBtn.classList.remove('hidden');
+        }
+
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.isCorrect === 'true';
+            const currentQuestion = allQuestions[currentQuestionIndex];
+            const correctOption = currentQuestion.answerOptions[currentQuestion.correctOptionIndex];
+
+            if (isCorrect) {
+                selectedBtn.classList.add('btn-correct');
+                setScore++;
+            } else {
+                selectedBtn.classList.add('btn-incorrect');
+                
+                // Log incorrect answer for the set summary
+                incorrectAnswersLog.push({
+                    question: currentQuestion.question,
+                    userAnswer: selectedBtn.dataset.text,
+                    correctAnswer: correctOption.text,
+                    rationale: correctOption.rationale
+                });
+                
+                // Find and highlight the correct answer
+                Array.from(optionsContainer.children).forEach(button => {
+                    if (button.dataset.isCorrect === 'true') {
+                        button.classList.add('btn-correct');
+                    }
+                });
+            }
+
+            // Disable all options after one is selected
+            Array.from(optionsContainer.children).forEach(button => {
+                button.disabled = true;
+                button.style.cursor = 'not-allowed';
+            });
+            
+            hintBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+        }
+
+        function handleNextButton() {
+            currentQuestionIndex++;
+            const questionsInSet = 25;
+            const isEndOfSet = (currentQuestionIndex % questionsInSet === 0);
+
+            if (isEndOfSet) {
+                showSetResults();
+            } else {
+                showQuestion();
+            }
+        }
+
+        function showSetResults() {
+            quizSection.classList.add('hidden');
+            setResultsSection.classList.remove('hidden');
+            
+            totalScore += setScore;
+            currentSetNumberText.textContent = `${currentSetIndex + 1}`;
+            setScoreText.textContent = `คุณทำได้ ${setScore} คะแนน จากทั้งหมด 25 ข้อ`;
+
+            incorrectAnswersList.innerHTML = '';
+            if (incorrectAnswersLog.length > 0) {
+                incorrectAnswersLog.forEach((item, index) => {
+                    const resultItem = document.createElement('div');
+                    resultItem.classList.add('p-4', 'bg-red-50', 'rounded-lg', 'border', 'border-red-200');
+                    resultItem.innerHTML = `
+                        <p class="font-bold text-gray-800">คำถาม: ${item.question}</p>
+                        <p class="text-sm mt-1">คำตอบของคุณ: <span class="text-red-600 font-semibold">${item.userAnswer}</span></p>
+                        <p class="text-sm">คำตอบที่ถูกต้อง: <span class="text-green-600 font-semibold">${item.correctAnswer}</span></p>
+                        <p class="text-xs mt-2 text-gray-700">คำอธิบาย: ${item.rationale}</p>
+                    `;
+                    incorrectAnswersList.appendChild(resultItem);
+                });
+            } else {
+                incorrectAnswersList.innerHTML = `<p class="text-center text-green-600 font-semibold">ยอดเยี่ยม! คุณตอบถูกทุกข้อในชุดนี้!</p>`;
+            }
+        }
+
+        function handleNextSetButton() {
+            currentSetIndex++;
+            if (currentSetIndex < 5) { // 5 sets in total
+                setResultsSection.classList.add('hidden');
+                quizSection.classList.remove('hidden');
+                setScore = 0;
+                incorrectAnswersLog = [];
+                showQuestion();
+            } else {
+                showFinalResults();
+            }
+        }
+
+        function showFinalResults() {
+            setResultsSection.classList.add('hidden');
+            finalResultsSection.classList.remove('hidden');
+            finalScoreText.textContent = `ยินดีด้วย ${userName}! คุณทำคะแนนรวมได้ ${totalScore} คะแนน จากทั้งหมด 125 ข้อ`;
+        }
+        
+        function restartQuiz() {
+            // Reset state
+            userName = "";
+            currentQuestionIndex = 0;
+            currentSetIndex = 0;
+            setScore = 0;
+            totalScore = 0;
+            incorrectAnswersLog = [];
+
+            // Reset UI
+            finalResultsSection.classList.add('hidden');
+            startSection.classList.remove('hidden');
+            nameInput.value = '';
+            startBtn.disabled = true;
+        }
+
+        // Updated function to download the report as a PDF
+        function downloadReport() {
+            // Get the element to convert to PDF
+            const element = document.getElementById('set-results-section');
+            const downloadButton = document.getElementById('download-report-btn');
+            
+            // Add a loading state to the button
+            downloadButton.textContent = 'กำลังสร้างไฟล์...';
+            downloadButton.disabled = true;
+            
+            // Generate PDF using html2canvas and jsPDF
+            html2canvas(element, { 
+                scale: 2, // Improve quality for better readability
+                useCORS: true 
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 295; // A4 height in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                // Save the PDF
+                doc.save(`สรุปผลการทดสอบ_ชุดที่_${currentSetIndex + 1}.pdf`);
+                
+                // Reset button state
+                downloadButton.textContent = 'ดาวน์โหลดใบสรุปผล';
+                downloadButton.disabled = false;
+            });
+        }
+
+        // Event Listeners
+        nameInput.addEventListener('input', () => {
+            startBtn.disabled = nameInput.value.trim() === '';
+        });
+        startBtn.addEventListener('click', () => {
+            userName = nameInput.value;
+            startSection.classList.add('hidden');
+            quizSection.classList.remove('hidden');
+            showQuestion();
+        });
+        hintBtn.addEventListener('click', () => {
+            hintBox.classList.toggle('hidden');
+        });
+        nextBtn.addEventListener('click', handleNextButton);
+        nextSetBtn.addEventListener('click', handleNextSetButton);
+        restartBtn.addEventListener('click', restartQuiz);
+        downloadReportBtn.addEventListener('click', downloadReport);
+    </script>
+</body>
+</html>
